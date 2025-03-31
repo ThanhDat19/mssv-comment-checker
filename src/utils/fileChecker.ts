@@ -1,3 +1,12 @@
+import {
+  hasColor,
+  hasFontFamily,
+  hasFontSize,
+  hasFontStyle,
+  hasLayoutElement,
+  hasCustomClasses,
+  hasImagesWithAlt
+} from './htmlStyleChecker';
 
 export const checkMSSVComment = (content: string): { hasMSSV: boolean; mssvValue?: string } => {
   // Look for MSSV comment at the beginning of the file
@@ -147,6 +156,64 @@ export const generateDefaultRequirements = (): RequirementDefinition[] => {
       description: "HTML file must include a <body> section",
       checkFn: (content) => /<body.*?>.*?<\/body>/is.test(content),
       points: 10
+    },
+    {
+      id: "style1",
+      name: "Uses blue color",
+      description: "HTML file should use blue color somewhere in the design",
+      checkFn: (content) => hasColor(content, "blue"),
+      points: 5
+    },
+    {
+      id: "style2",
+      name: "Uses sans-serif font",
+      description: "HTML file should use a sans-serif font family",
+      checkFn: (content) => hasFontFamily(content, "sans-serif") || 
+                           hasFontFamily(content, "Arial") || 
+                           hasFontFamily(content, "Helvetica"),
+      points: 5
+    },
+    {
+      id: "style3",
+      name: "Uses heading styles",
+      description: "HTML file should contain at least one heading (h1-h6)",
+      checkFn: (content) => /<h[1-6].*?>.*?<\/h[1-6]>/is.test(content),
+      points: 5
+    },
+    {
+      id: "style4",
+      name: "Uses bold text",
+      description: "HTML file should include bold text styling",
+      checkFn: (content) => hasFontStyle(content, "bold"),
+      points: 5
+    },
+    {
+      id: "style5",
+      name: "Responsive design",
+      description: "HTML file should include responsive design techniques",
+      checkFn: (content) => hasLayoutElement(content, "responsive"),
+      points: 10
+    },
+    {
+      id: "style6",
+      name: "Uses flex or grid layout",
+      description: "HTML file should use flexbox or grid for layout",
+      checkFn: (content) => hasLayoutElement(content, "flex") || hasLayoutElement(content, "grid"),
+      points: 10
+    },
+    {
+      id: "style7",
+      name: "Custom CSS classes",
+      description: "HTML file should have at least 3 custom CSS classes",
+      checkFn: (content) => hasCustomClasses(content, 3),
+      points: 10
+    },
+    {
+      id: "style8",
+      name: "Images with alt text",
+      description: "HTML file should include images with alt text for accessibility",
+      checkFn: (content) => hasImagesWithAlt(content),
+      points: 5
     }
   ];
 };

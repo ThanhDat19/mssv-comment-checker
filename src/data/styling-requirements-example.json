@@ -1,0 +1,73 @@
+
+[
+  {
+    "id": "color1",
+    "name": "Uses primary color blue",
+    "description": "Design must include the primary color blue (#1e90ff or rgb(30,144,255))",
+    "checkFn": "function(content) { return content.toLowerCase().includes('#1e90ff') || content.toLowerCase().includes('rgb(30,144,255)') || content.toLowerCase().includes('blue'); }",
+    "points": 5
+  },
+  {
+    "id": "color2",
+    "name": "Uses secondary color green",
+    "description": "Design must include the secondary color green (#2ecc71 or rgb(46,204,113))",
+    "checkFn": "function(content) { return content.toLowerCase().includes('#2ecc71') || content.toLowerCase().includes('rgb(46,204,113)') || content.toLowerCase().includes('green'); }",
+    "points": 5
+  },
+  {
+    "id": "typography1",
+    "name": "Uses font-family Arial or Helvetica",
+    "description": "Font family must be set to Arial or Helvetica",
+    "checkFn": "function(content) { return content.toLowerCase().includes('arial') || content.toLowerCase().includes('helvetica'); }",
+    "points": 5
+  },
+  {
+    "id": "typography2",
+    "name": "Uses h1 for main heading",
+    "description": "Main heading must use h1 tag",
+    "checkFn": "function(content) { return /<h1.*?>.*?<\\/h1>/is.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "typography3",
+    "name": "Font size between 14px and 18px for body text",
+    "description": "Body text should be between 14px and 18px",
+    "checkFn": "function(content) { return /font-size:\\s*1[4-8]px/.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "layout1",
+    "name": "Uses Flexbox for layout",
+    "description": "Page should use Flexbox for layout",
+    "checkFn": "function(content) { return /display:\\s*flex/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "layout2", 
+    "name": "Responsive design with media queries",
+    "description": "Page should include at least one media query for responsive design",
+    "checkFn": "function(content) { return /@media\\s*\\(/.test(content); }",
+    "points": 15
+  },
+  {
+    "id": "layout3",
+    "name": "Has navigation menu",
+    "description": "Page should include a navigation menu (nav element)",
+    "checkFn": "function(content) { return /<nav.*?>.*?<\\/nav>/is.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "accessibility1",
+    "name": "Images have alt text",
+    "description": "All img elements must have alt attributes",
+    "checkFn": "function(content) { const imgTags = content.match(/<img[^>]*>/g) || []; return imgTags.length === 0 || imgTags.every(tag => /alt=['\"][^'\"]*['\"]/.test(tag)); }",
+    "points": 10
+  },
+  {
+    "id": "style1",
+    "name": "Has custom CSS classes",
+    "description": "Page should use at least 3 custom CSS classes",
+    "checkFn": "function(content) { const matches = content.match(/class=['\"]([^'\"]*)['\"]/) || []; let classCount = 0; matches.forEach(match => { classCount += match.split(/\\s+/).length; }); return classCount >= 3; }",
+    "points": 10
+  }
+]

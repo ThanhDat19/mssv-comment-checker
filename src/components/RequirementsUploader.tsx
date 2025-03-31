@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Upload, FileDown, Plus, Trash2 } from "lucide-react";
+import { Upload, FileDown, Plus, Trash2, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RequirementDefinition, generateDefaultRequirements } from "@/utils/fileChecker";
@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import stylingRequirementsExample from "../data/styling-requirements-example.json";
 
 interface RequirementsUploaderProps {
   onRequirementsLoaded: (requirements: RequirementDefinition[]) => void;
@@ -108,6 +109,23 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
     setIsDialogOpen(true);
   };
 
+  const downloadStylingExample = () => {
+    const blob = new Blob([JSON.stringify(stylingRequirementsExample, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "html-styling-requirements.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Styling requirements example downloaded",
+      description: "Example requirements for checking colors, typography, and layout",
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -168,14 +186,26 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
           </div>
         </div>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={useDefaultRequirements}
-          className="w-full"
-        >
-          Use Default Requirements
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={useDefaultRequirements}
+            className="w-full"
+          >
+            Use Default Requirements
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadStylingExample}
+            className="w-full gap-2"
+          >
+            <Palette size={16} />
+            Download Styling Requirements Example
+          </Button>
+        </div>
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
