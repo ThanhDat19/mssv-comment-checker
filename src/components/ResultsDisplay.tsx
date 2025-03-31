@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { CheckCircle, XCircle, FileText, Download, Eye, EyeOff, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,12 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
 
   const toggleRequirements = (fileName: string) => {
     setExpandedRequirements(expandedRequirements === fileName ? null : fileName);
+  };
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 80) return "bg-success";
+    if (percentage >= 60) return "bg-amber-500";
+    return "bg-destructive";
   };
 
   if (results.length === 0) return null;
@@ -193,12 +198,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
                           </div>
                           <Progress
                             value={result.requirements.percentage}
-                            className="h-2"
-                            indicatorClassName={
-                              result.requirements.percentage >= 80 ? "bg-success" :
-                              result.requirements.percentage >= 60 ? "bg-amber-500" :
-                              "bg-destructive"
-                            }
+                            className={`h-2 ${getProgressColor(result.requirements.percentage)}`}
                           />
                         </div>
                       ) : (
@@ -273,4 +273,3 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
     </div>
   );
 };
-
