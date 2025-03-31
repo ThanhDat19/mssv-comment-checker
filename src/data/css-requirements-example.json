@@ -1,0 +1,83 @@
+
+[
+  {
+    "id": "css1",
+    "type": "css",
+    "name": "Uses CSS variables",
+    "description": "CSS should use CSS variables (custom properties)",
+    "checkFn": "function(content) { return /--[a-zA-Z0-9-_]+\\s*:/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "css2",
+    "type": "css",
+    "name": "Uses flexbox layout",
+    "description": "CSS should use flexbox for layout",
+    "checkFn": "function(content) { return /display\\s*:\\s*flex/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "css3",
+    "type": "css",
+    "name": "Uses grid layout",
+    "description": "CSS should use grid for layout",
+    "checkFn": "function(content) { return /display\\s*:\\s*grid/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "css4",
+    "type": "css",
+    "name": "Uses media queries",
+    "description": "CSS should include media queries for responsive design",
+    "checkFn": "function(content) { return /@media\\s*\\(/.test(content); }",
+    "points": 15
+  },
+  {
+    "id": "css5",
+    "type": "css",
+    "name": "Uses color variables",
+    "description": "CSS should use color variables or custom properties",
+    "checkFn": "function(content) { return /--[a-zA-Z0-9-_]*color[a-zA-Z0-9-_]*\\s*:/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "css6",
+    "type": "css",
+    "name": "Uses transitions",
+    "description": "CSS should include transitions for animations",
+    "checkFn": "function(content) { return /transition\\s*:/.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "css7",
+    "type": "css",
+    "name": "Uses pseudo-elements",
+    "description": "CSS should use ::before or ::after pseudo-elements",
+    "checkFn": "function(content) { return /::?(before|after)/.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "css8",
+    "type": "css",
+    "name": "Uses proper box-sizing",
+    "description": "CSS should set box-sizing: border-box",
+    "checkFn": "function(content) { return /box-sizing\\s*:\\s*border-box/.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "css9",
+    "type": "css",
+    "name": "Uses relative units",
+    "description": "CSS should use relative units like em, rem, %, vh, vw",
+    "checkFn": "function(content) { return /(\\d+)(em|rem|%|vh|vw)/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "css10",
+    "type": "css",
+    "name": "Uses proper CSS selectors",
+    "description": "CSS should use class selectors instead of just element selectors",
+    "checkFn": "function(content) { return /\\.[a-zA-Z][a-zA-Z0-9_-]*\\s*{/.test(content); }",
+    "points": 10
+  }
+]

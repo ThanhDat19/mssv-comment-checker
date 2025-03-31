@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Upload, FileDown, Plus, Trash2, Palette } from "lucide-react";
+import { Upload, FileDown, Plus, Trash2, Palette, Code, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RequirementDefinition, generateDefaultRequirements } from "@/utils/fileChecker";
@@ -15,7 +15,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import stylingRequirementsExample from "../data/styling-requirements-example.json";
+import htmlRequirementsExample from "../data/html-requirements-example.json";
+import cssRequirementsExample from "../data/css-requirements-example.json";
 
 interface RequirementsUploaderProps {
   onRequirementsLoaded: (requirements: RequirementDefinition[]) => void;
@@ -26,6 +29,7 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
 }) => {
   const [requirements, setRequirements] = useState<RequirementDefinition[]>(generateDefaultRequirements());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<string>("all");
   const { toast } = useToast();
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +86,7 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "html-requirements.json";
+    a.download = "requirements.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -107,29 +111,97 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
 
   const viewRequirements = () => {
     setIsDialogOpen(true);
+    setSelectedTab("all");
   };
 
-  const downloadStylingExample = () => {
-    const blob = new Blob([JSON.stringify(stylingRequirementsExample, null, 2)], { type: "application/json" });
+  const downloadExampleFile = (type: string) => {
+    let exampleData;
+    let fileName;
+    
+    switch (type) {
+      case "styling":
+        exampleData = stylingRequirementsExample;
+        fileName = "styling-requirements-example.json";
+        break;
+      case "html":
+        exampleData = htmlRequirementsExample;
+        fileName = "html-requirements-example.json";
+        break;
+      case "css":
+        exampleData = cssRequirementsExample;
+        fileName = "css-requirements-example.json";
+        break;
+      default:
+        exampleData = stylingRequirementsExample;
+        fileName = "requirements-example.json";
+    }
+    
+    const blob = new Blob([JSON.stringify(exampleData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "html-styling-requirements.json";
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
     toast({
-      title: "Styling requirements example downloaded",
-      description: "Example requirements for checking colors, typography, and layout",
+      title: `${type.charAt(0).toUpperCase() + type.slice(1)} requirements downloaded`,
+      description: `Example requirements for checking ${type} elements`,
+    });
+  };
+
+  const getRequirementsByType = (type: string) => {
+    if (type === "all") return requirements;
+    return requirements.filter(req => req.type === type);
+  };
+
+  const useExampleRequirements = (type: string) => {
+    let newRequirements;
+    
+    switch (type) {
+      case "styling":
+        newRequirements = stylingRequirementsExample;
+        break;
+      case "html":
+        newRequirements = htmlRequirementsExample;
+        break;
+      case "css":
+        newRequirements = cssRequirementsExample;
+        break;
+      default:
+        newRequirements = requirements;
+    }
+    
+    // Convert string functions to actual functions
+    const processedRequirements = newRequirements.map((req: any) => {
+      if (typeof req.checkFn === 'string') {
+        try {
+          // eslint-disable-next-line no-new-func
+          req.checkFn = new Function('content', `return ${req.checkFn}`)(null);
+        } catch (err) {
+          console.error(`Error parsing function for requirement ${req.id}:`, err);
+          // Provide a default function that returns false
+          req.checkFn = () => false;
+        }
+      }
+      return req;
+    });
+
+    setRequirements(processedRequirements);
+    onRequirementsLoaded(processedRequirements);
+    
+    toast({
+      title: `${type.charAt(0).toUpperCase() + type.slice(1)} requirements loaded`,
+      description: `Loaded ${processedRequirements.length} ${type} requirements`,
     });
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">HTML Requirements</h2>
+        <h2 className="text-xl font-bold">Requirements Checker</h2>
         <div className="flex gap-2">
           <label htmlFor="requirements-upload">
             <Button variant="outline" size="sm" className="gap-2" asChild>
@@ -167,7 +239,7 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
       </div>
       
       <p className="text-sm text-gray-500 mb-4">
-        Upload a JSON file with your custom HTML grading requirements, or use our default HTML checks.
+        Upload a JSON file with your custom requirements for checking HTML and CSS files, or use our predefined templates.
       </p>
       
       <div className="text-sm">
@@ -184,6 +256,18 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
             </p>
             <p className="text-xs text-gray-600">Total Points</p>
           </div>
+          <div className="bg-blue-50 p-2 rounded text-center">
+            <p className="font-medium text-education">
+              {requirements.filter(req => req.type === 'html').length}
+            </p>
+            <p className="text-xs text-gray-600">HTML Checks</p>
+          </div>
+          <div className="bg-blue-50 p-2 rounded text-center">
+            <p className="font-medium text-education">
+              {requirements.filter(req => req.type === 'css').length}
+            </p>
+            <p className="text-xs text-gray-600">CSS Checks</p>
+          </div>
         </div>
         
         <div className="flex flex-col gap-2">
@@ -196,64 +280,139 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
             Use Default Requirements
           </Button>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadStylingExample}
-            className="w-full gap-2"
-          >
-            <Palette size={16} />
-            Download Styling Requirements Example
-          </Button>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => useExampleRequirements("html")}
+              className="gap-2"
+            >
+              <FileText size={16} />
+              Use HTML Requirements
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => useExampleRequirements("css")}
+              className="gap-2"
+            >
+              <Code size={16} />
+              Use CSS Requirements
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => useExampleRequirements("styling")}
+              className="gap-2"
+            >
+              <Palette size={16} />
+              Use Styling Requirements
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadExampleFile("html")}
+              className="text-xs"
+            >
+              Download HTML Example
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadExampleFile("css")}
+              className="text-xs"
+            >
+              Download CSS Example
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadExampleFile("styling")}
+              className="text-xs"
+            >
+              Download Styling Example
+            </Button>
+          </div>
         </div>
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>HTML Requirements</DialogTitle>
+            <DialogTitle>Requirements</DialogTitle>
             <DialogDescription>
-              View and manage the requirements used to check HTML files
+              View and manage the requirements used to check files
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 min-h-0 overflow-auto py-4">
-            <div className="border rounded-lg mb-4">
-              <div className="grid grid-cols-12 bg-gray-100 p-3 rounded-t-lg font-medium text-sm">
-                <div className="col-span-4">Name</div>
-                <div className="col-span-5">Description</div>
-                <div className="col-span-2 text-center">Points</div>
-                <div className="col-span-1"></div>
+          <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="all">All ({requirements.length})</TabsTrigger>
+              <TabsTrigger value="html">HTML ({requirements.filter(req => req.type === 'html').length})</TabsTrigger>
+              <TabsTrigger value="css">CSS ({requirements.filter(req => req.type === 'css').length})</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value={selectedTab} className="flex-1 min-h-0 overflow-hidden">
+              <div className="border rounded-lg mb-4 h-full">
+                <div className="grid grid-cols-12 bg-gray-100 p-3 rounded-t-lg font-medium text-sm">
+                  <div className="col-span-3">Name</div>
+                  <div className="col-span-5">Description</div>
+                  <div className="col-span-2 text-center">Type</div>
+                  <div className="col-span-1 text-center">Points</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                <ScrollArea className="h-[40vh]">
+                  {getRequirementsByType(selectedTab).map((req, index) => (
+                    <div 
+                      key={index} 
+                      className={`
+                        grid grid-cols-12 p-3 items-center text-sm border-t
+                        ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                      `}
+                    >
+                      <div className="col-span-3 truncate" title={req.name}>
+                        {req.name}
+                      </div>
+                      <div className="col-span-5 text-gray-600 truncate" title={req.description}>
+                        {req.description}
+                      </div>
+                      <div className="col-span-2 text-center">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          req.type === 'html' ? 'bg-blue-100 text-blue-800' : 
+                          req.type === 'css' ? 'bg-purple-100 text-purple-800' : 
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {req.type || 'unknown'}
+                        </span>
+                      </div>
+                      <div className="col-span-1 text-center font-medium">
+                        {req.points}
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <Trash2 size={14} className="text-gray-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {getRequirementsByType(selectedTab).length === 0 && (
+                    <div className="p-6 text-center text-gray-500">
+                      No {selectedTab} requirements found
+                    </div>
+                  )}
+                </ScrollArea>
               </div>
-              
-              <ScrollArea className="max-h-[40vh]">
-                {requirements.map((req, index) => (
-                  <div 
-                    key={index} 
-                    className={`
-                      grid grid-cols-12 p-3 items-center text-sm border-t
-                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                    `}
-                  >
-                    <div className="col-span-4 truncate" title={req.name}>
-                      {req.name}
-                    </div>
-                    <div className="col-span-5 text-gray-600 truncate" title={req.description}>
-                      {req.description}
-                    </div>
-                    <div className="col-span-2 text-center font-medium">
-                      {req.points}
-                    </div>
-                    <div className="col-span-1 flex justify-end">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                        <Trash2 size={14} className="text-gray-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </ScrollArea>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
           
           <DialogFooter>
             <Button onClick={() => setIsDialogOpen(false)}>

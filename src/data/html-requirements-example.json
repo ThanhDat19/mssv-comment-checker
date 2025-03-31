@@ -1,0 +1,83 @@
+
+[
+  {
+    "id": "html1",
+    "type": "html",
+    "name": "Contains DOCTYPE declaration",
+    "description": "HTML file must include the DOCTYPE declaration",
+    "checkFn": "function(content) { return content.toLowerCase().includes('<!doctype html>'); }",
+    "points": 5
+  },
+  {
+    "id": "html2",
+    "type": "html",
+    "name": "Contains <html> tag",
+    "description": "HTML file must have <html> tags",
+    "checkFn": "function(content) { return /<html.*?>.*?<\\/html>/is.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "html3",
+    "type": "html",
+    "name": "Contains <head> section",
+    "description": "HTML file must include a <head> section",
+    "checkFn": "function(content) { return /<head.*?>.*?<\\/head>/is.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "html4",
+    "type": "html",
+    "name": "Contains <title> element",
+    "description": "HTML file must have a title element",
+    "checkFn": "function(content) { return /<title.*?>.*?<\\/title>/is.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "html5",
+    "type": "html",
+    "name": "Contains <body> section",
+    "description": "HTML file must include a <body> section",
+    "checkFn": "function(content) { return /<body.*?>.*?<\\/body>/is.test(content); }",
+    "points": 5
+  },
+  {
+    "id": "html6",
+    "type": "html",
+    "name": "Uses heading hierarchy",
+    "description": "Page should include a proper heading hierarchy (h1 followed by h2, etc.)",
+    "checkFn": "function(content) { return /<h1.*?>.*?<\\/h1>/is.test(content) && /<h2.*?>.*?<\\/h2>/is.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "html7",
+    "type": "html",
+    "name": "Contains semantic elements",
+    "description": "Page should use semantic HTML elements like article, section, nav, etc.",
+    "checkFn": "function(content) { return /(article|section|nav|header|footer|main|aside)/.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "html8",
+    "type": "html",
+    "name": "Contains form elements",
+    "description": "Page should include at least one form element",
+    "checkFn": "function(content) { return /<form.*?>.*?<\\/form>/is.test(content); }",
+    "points": 10
+  },
+  {
+    "id": "html9",
+    "type": "html",
+    "name": "Uses tables properly",
+    "description": "If tables are used, they should include th and tbody elements",
+    "checkFn": "function(content) { return !/<table/.test(content) || (/<table/.test(content) && /<th/.test(content) && /<tbody/.test(content)); }",
+    "points": 10
+  },
+  {
+    "id": "html10",
+    "type": "html",
+    "name": "Contains links",
+    "description": "Page should include at least one hyperlink",
+    "checkFn": "function(content) { return /<a\\s+[^>]*href/.test(content); }",
+    "points": 5
+  }
+]
