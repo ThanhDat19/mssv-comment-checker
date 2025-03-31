@@ -1,40 +1,66 @@
 
 import React, { useState } from "react";
-import { CheckCircle, XCircle, FileText, Download, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Download, Eye, EyeOff, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { RequirementDefinition } from "@/utils/fileChecker";
 
 export interface FileCheckResult {
   fileName: string;
   content: string;
   hasMSSV: boolean;
   mssvValue?: string;
+  requirements?: {
+    results: { requirementId: string; passed: boolean }[];
+    totalPoints: number;
+    earnedPoints: number;
+    percentage: number;
+  };
 }
 
 interface ResultsDisplayProps {
   results: FileCheckResult[];
   onClear: () => void;
+  requirements?: RequirementDefinition[];
 }
 
-export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear }) => {
+export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear, requirements = [] }) => {
   const [viewContent, setViewContent] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("all");
+  const [expandedRequirements, setExpandedRequirements] = useState<string | null>(null);
   
   const passedFiles = results.filter((file) => file.hasMSSV);
   const failedFiles = results.filter((file) => !file.hasMSSV);
   
   const downloadReport = () => {
     const report = results.map((result) => {
-      return `File: ${result.fileName}\nStatus: ${result.hasMSSV ? "PASSED ✓" : "FAILED ✗"}\n${result.hasMSSV ? `MSSV: ${result.mssvValue}` : "No MSSV comment found"}\n------------------------`;
+      let reportText = `File: ${result.fileName}\nMSSV Status: ${result.hasMSSV ? "PASSED ✓" : "FAILED ✗"}\n${result.hasMSSV ? `MSSV: ${result.mssvValue}` : "No MSSV comment found"}\n`;
+      
+      if (result.requirements) {
+        reportText += `\nRequirements Score: ${result.requirements.percentage}%`;
+        reportText += `\nEarned Points: ${result.requirements.earnedPoints}/${result.requirements.totalPoints}\n`;
+        reportText += "\nRequirement Details:";
+        
+        result.requirements.results.forEach((req) => {
+          const reqDef = requirements.find(r => r.id === req.requirementId);
+          if (reqDef) {
+            reportText += `\n- ${reqDef.name}: ${req.passed ? "PASSED ✓" : "FAILED ✗"}`;
+          }
+        });
+      }
+      
+      reportText += "\n------------------------";
+      return reportText;
     }).join("\n\n");
     
     const blob = new Blob([report], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "mssv-check-report.txt";
+    a.download = "html-check-report.txt";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -50,6 +76,10 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
       default:
         return results;
     }
+  };
+
+  const toggleRequirements = (fileName: string) => {
+    setExpandedRequirements(expandedRequirements === fileName ? null : fileName);
   };
 
   if (results.length === 0) return null;
@@ -106,70 +136,135 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
           <div className="border rounded-lg">
             <div className="grid grid-cols-12 bg-gray-100 p-3 rounded-t-lg font-medium text-sm">
               <div className="col-span-1 text-center">#</div>
-              <div className="col-span-6">File Name</div>
-              <div className="col-span-3">Status</div>
+              <div className="col-span-4">File Name</div>
+              <div className="col-span-3">MSSV Status</div>
+              <div className="col-span-2">Requirements</div>
               <div className="col-span-2 text-center">Actions</div>
             </div>
             
             <ScrollArea className="h-[400px]">
               {filteredResults().map((result, index) => (
-                <div 
-                  key={index} 
-                  className={`
-                    grid grid-cols-12 p-3 items-center text-sm border-t
-                    ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                  `}
-                >
-                  <div className="col-span-1 text-center text-gray-500">{index + 1}</div>
-                  <div className="col-span-6 flex items-center gap-2">
-                    <FileText size={16} className="text-gray-400" />
-                    <span className="truncate" title={result.fileName}>
-                      {result.fileName}
-                    </span>
-                  </div>
-                  <div className="col-span-3">
-                    {result.hasMSSV ? (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle size={16} className="text-success" />
-                        <Badge variant="outline" className="bg-green-50 text-success border-success">
-                          {result.mssvValue}
-                        </Badge>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <XCircle size={16} className="text-destructive" />
-                        <Badge variant="outline" className="bg-red-50 text-destructive border-destructive">
-                          No MSSV Found
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-2 flex justify-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => 
-                        setViewContent(viewContent === result.fileName ? null : result.fileName)
-                      }
-                      className="p-1 h-8 w-8"
-                    >
-                      {viewContent === result.fileName ? (
-                        <EyeOff size={16} />
+                <React.Fragment key={index}>
+                  <div 
+                    className={`
+                      grid grid-cols-12 p-3 items-center text-sm border-t
+                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                    `}
+                  >
+                    <div className="col-span-1 text-center text-gray-500">{index + 1}</div>
+                    <div className="col-span-4 flex items-center gap-2">
+                      <FileText size={16} className="text-gray-400" />
+                      <span className="truncate" title={result.fileName}>
+                        {result.fileName}
+                      </span>
+                    </div>
+                    <div className="col-span-3">
+                      {result.hasMSSV ? (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={16} className="text-success" />
+                          <Badge variant="outline" className="bg-green-50 text-success border-success">
+                            {result.mssvValue}
+                          </Badge>
+                        </div>
                       ) : (
-                        <Eye size={16} />
+                        <div className="flex items-center gap-2">
+                          <XCircle size={16} className="text-destructive" />
+                          <Badge variant="outline" className="bg-red-50 text-destructive border-destructive">
+                            No MSSV Found
+                          </Badge>
+                        </div>
                       )}
-                    </Button>
+                    </div>
+                    <div className="col-span-2">
+                      {result.requirements ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${result.requirements.percentage >= 60 ? 'text-success' : 'text-destructive'}`}>
+                              {result.requirements.percentage}%
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleRequirements(result.fileName)}
+                              className="ml-auto p-1 h-6 w-6"
+                            >
+                              <ClipboardList size={14} />
+                            </Button>
+                          </div>
+                          <Progress
+                            value={result.requirements.percentage}
+                            className="h-2"
+                            indicatorClassName={
+                              result.requirements.percentage >= 80 ? "bg-success" :
+                              result.requirements.percentage >= 60 ? "bg-amber-500" :
+                              "bg-destructive"
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Not checked</span>
+                      )}
+                    </div>
+                    <div className="col-span-2 flex justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => 
+                          setViewContent(viewContent === result.fileName ? null : result.fileName)
+                        }
+                        className="p-1 h-8 w-8"
+                        title="View content"
+                      >
+                        {viewContent === result.fileName ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   
+                  {expandedRequirements === result.fileName && result.requirements && (
+                    <div className="col-span-12 bg-gray-50 p-3 border-t border-b">
+                      <h4 className="font-medium mb-2">Requirement Details</h4>
+                      <div className="space-y-2">
+                        {result.requirements.results.map((req, reqIndex) => {
+                          const reqDef = requirements.find(r => r.id === req.requirementId);
+                          if (!reqDef) return null;
+                          
+                          return (
+                            <div key={reqIndex} className="flex items-start gap-2 text-sm">
+                              {req.passed ? (
+                                <CheckCircle size={16} className="text-success mt-0.5" />
+                              ) : (
+                                <XCircle size={16} className="text-destructive mt-0.5" />
+                              )}
+                              <div>
+                                <p className="font-medium">{reqDef.name} ({reqDef.points} pts)</p>
+                                <p className="text-gray-500 text-xs">{reqDef.description}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 pt-3 border-t flex justify-between">
+                        <span className="text-sm font-medium">Total Score:</span>
+                        <span className="text-sm font-medium">
+                          {result.requirements.earnedPoints}/{result.requirements.totalPoints} points ({result.requirements.percentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {viewContent === result.fileName && (
-                    <div className="col-span-12 mt-2 mb-1 bg-gray-50 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <div className="col-span-12 p-3 bg-gray-50 border-t border-b font-mono text-xs overflow-x-auto">
                       <pre className="whitespace-pre-wrap break-all text-left">
                         {result.content.slice(0, 500)}
                         {result.content.length > 500 && "..."}
                       </pre>
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               ))}
             </ScrollArea>
           </div>
@@ -178,3 +273,4 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
     </div>
   );
 };
+

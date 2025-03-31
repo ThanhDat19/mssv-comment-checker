@@ -1,10 +1,17 @@
 
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { FileUploader } from "@/components/FileUploader";
 import { ResultsDisplay, FileCheckResult } from "@/components/ResultsDisplay";
-import { checkMSSVComment, readFileContent } from "@/utils/fileChecker";
+import { 
+  checkMSSVComment, 
+  readFileContent, 
+  checkRequirements, 
+  RequirementDefinition, 
+  generateDefaultRequirements 
+} from "@/utils/fileChecker";
+import { RequirementsUploader } from "@/components/RequirementsUploader";
 import Header from "@/components/Header";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const Index = () => {
   const [results, setResults] = useState<FileCheckResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [requirements, setRequirements] = useState<RequirementDefinition[]>(generateDefaultRequirements());
   const { toast } = useToast();
 
   const handleFilesUploaded = async (files: File[]) => {
@@ -27,11 +35,17 @@ const Index = () => {
           const content = await readFileContent(file);
           const mssvCheck = checkMSSVComment(content);
           
+          // Check requirements only if MSSV is present
+          const requirementsCheck = mssvCheck.hasMSSV 
+            ? checkRequirements(content, requirements)
+            : undefined;
+          
           newResults.push({
             fileName: file.name,
             content: content,
             hasMSSV: mssvCheck.hasMSSV,
-            mssvValue: mssvCheck.mssvValue
+            mssvValue: mssvCheck.mssvValue,
+            requirements: requirementsCheck
           });
         } catch (error) {
           console.error(`Error processing file ${file.name}:`, error);
@@ -45,13 +59,13 @@ const Index = () => {
       
       setResults(prevResults => [...prevResults, ...newResults]);
       
-      const passCount = newResults.filter(r => r.hasMSSV).length;
-      const failCount = newResults.length - passCount;
+      const passedMSSV = newResults.filter(r => r.hasMSSV).length;
+      const passedReqs = newResults.filter(r => r.requirements && r.requirements.percentage >= 60).length;
       
       toast({
         title: "Files processed successfully",
-        description: `${newResults.length} files checked: ${passCount} passed, ${failCount} failed`,
-        variant: passCount === newResults.length ? "default" : "destructive",
+        description: `${newResults.length} files checked: ${passedMSSV} with MSSV, ${passedReqs} met requirements`,
+        variant: passedMSSV === newResults.length ? "default" : "destructive",
       });
       
     } catch (error) {
@@ -63,6 +77,26 @@ const Index = () => {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
+    setRequirements(newRequirements);
+    
+    // Re-check existing results if there are any
+    if (results.length > 0) {
+      const updatedResults = results.map(result => {
+        // Only update if the file has MSSV
+        if (result.hasMSSV) {
+          return {
+            ...result,
+            requirements: checkRequirements(result.content, newRequirements)
+          };
+        }
+        return result;
+      });
+      
+      setResults(updatedResults);
     }
   };
 
@@ -82,11 +116,13 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <Alert className="mb-6">
             <Info className="h-4 w-4" />
-            <AlertTitle>MSSV Comment Format</AlertTitle>
+            <AlertTitle>HTML File Grading Tool</AlertTitle>
             <AlertDescription>
-              HTML files should include <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code> at the beginning of the file. Files without this comment will be marked as failed.
+              Files need an MSSV comment <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code> at the beginning and must meet HTML requirements to earn points.
             </AlertDescription>
           </Alert>
+          
+          <RequirementsUploader onRequirementsLoaded={handleRequirementsLoaded} />
           
           <FileUploader 
             onFilesUploaded={handleFilesUploaded} 
@@ -105,12 +141,16 @@ const Index = () => {
           )}
           
           {results.length > 0 && (
-            <ResultsDisplay results={results} onClear={clearResults} />
+            <ResultsDisplay 
+              results={results} 
+              onClear={clearResults} 
+              requirements={requirements}
+            />
           )}
           
           {results.length > 0 && (
             <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-bold mb-4">Summary</h3>
+              <h3 className="text-xl font-bold mb-4">Grading Summary</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border rounded-lg p-4">
                   <div className="flex items-start gap-4">
@@ -120,7 +160,7 @@ const Index = () => {
                     <div>
                       <h4 className="font-medium">Valid Files</h4>
                       <p className="text-sm text-gray-500 mt-1">
-                        Files with proper MSSV comment at the beginning will receive full credit.
+                        Files with MSSV comment that meet at least 60% of requirements will pass.
                       </p>
                     </div>
                   </div>
@@ -134,7 +174,7 @@ const Index = () => {
                     <div>
                       <h4 className="font-medium">Invalid Files</h4>
                       <p className="text-sm text-gray-500 mt-1">
-                        Files without the required MSSV comment will receive zero points.
+                        Files without MSSV comment or with fewer than 60% of requirements will fail.
                       </p>
                     </div>
                   </div>
@@ -147,7 +187,7 @@ const Index = () => {
       
       <footer className="border-t mt-12 py-6 text-center text-sm text-gray-500">
         <div className="container mx-auto">
-          MSSV Comment Checker Tool &copy; {new Date().getFullYear()}
+          HTML Grading Tool &copy; {new Date().getFullYear()}
         </div>
       </footer>
       
