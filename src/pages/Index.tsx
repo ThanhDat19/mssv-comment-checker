@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +39,16 @@ const Index = () => {
           
           // Determine file type
           const fileType = determineFileType(file.name, content);
+          
+          // Skip files that are neither HTML nor CSS
+          if (!fileType) {
+            toast({
+              title: "Unsupported file type",
+              description: `${file.name} is not recognized as HTML or CSS. Skipping.`,
+              variant: "destructive",
+            });
+            continue;
+          }
           
           // Check requirements only if MSSV is present
           let requirementsCheck;

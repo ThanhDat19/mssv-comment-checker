@@ -32,18 +32,21 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       setIsDragging(false);
       
       const files = Array.from(e.dataTransfer.files);
-      const htmlFiles = files.filter(file => file.name.toLowerCase().endsWith('.html'));
+      const validFiles = files.filter(file => 
+        file.name.toLowerCase().endsWith('.html') || 
+        file.name.toLowerCase().endsWith('.css')
+      );
       
-      if (htmlFiles.length === 0) {
+      if (validFiles.length === 0) {
         toast({
           title: "Invalid files",
-          description: "Please upload HTML files only.",
+          description: "Please upload HTML or CSS files only.",
           variant: "destructive",
         });
         return;
       }
       
-      onFilesUploaded(htmlFiles);
+      onFilesUploaded(validFiles);
     },
     [onFilesUploaded, toast]
   );
@@ -53,20 +56,21 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       const files = e.target.files;
       if (!files || files.length === 0) return;
       
-      const htmlFiles = Array.from(files).filter(file => 
-        file.name.toLowerCase().endsWith('.html')
+      const validFiles = Array.from(files).filter(file => 
+        file.name.toLowerCase().endsWith('.html') || 
+        file.name.toLowerCase().endsWith('.css')
       );
       
-      if (htmlFiles.length === 0) {
+      if (validFiles.length === 0) {
         toast({
           title: "Invalid files",
-          description: "Please upload HTML files only.",
+          description: "Please upload HTML or CSS files only.",
           variant: "destructive",
         });
         return;
       }
       
-      onFilesUploaded(htmlFiles);
+      onFilesUploaded(validFiles);
       
       // Reset the input value so the same file can be uploaded again if needed
       e.target.value = '';
@@ -91,7 +95,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         </div>
         <div className="text-center">
           <p className="text-lg font-medium">
-            {isDragging ? "Drop HTML files here" : "Drag & Drop your HTML files here"}
+            {isDragging ? "Drop HTML or CSS files here" : "Drag & Drop your HTML or CSS files here"}
           </p>
           <p className="text-sm text-gray-500 mt-1">
             or click to browse your files
@@ -114,14 +118,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
               className="gap-2 bg-education hover:bg-education-dark"
             >
               <Upload size={16} />
-              Select HTML Files
+              Select HTML or CSS Files
             </Button>
           </label>
           <input
             id="file-upload"
             type="file"
             multiple
-            accept=".html"
+            accept=".html,.css"
             onChange={handleFileInputChange}
             className="hidden"
             disabled={isProcessing}
