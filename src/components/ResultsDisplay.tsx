@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { CheckCircle, XCircle, FileText, Download, Eye, EyeOff, ClipboardList, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,9 +28,9 @@ interface ResultsDisplayProps {
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear, requirements = [] }) => {
-  const [viewContent, setViewContent] = useState<string | null>(null);
+  const [viewContentFiles, setViewContentFiles] = useState<Set<string>>(new Set());
   const [selectedTab, setSelectedTab] = useState("all");
-  const [expandedRequirements, setExpandedRequirements] = useState<string | null>(null);
+  const [expandedRequirements, setExpandedRequirements] = useState<Set<string>>(new Set());
   
   const passedFiles = results.filter((file) => file.hasMSSV);
   const failedFiles = results.filter((file) => !file.hasMSSV);
@@ -84,7 +83,27 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
   };
 
   const toggleRequirements = (fileName: string) => {
-    setExpandedRequirements(expandedRequirements === fileName ? null : fileName);
+    setExpandedRequirements(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileName)) {
+        newSet.delete(fileName);
+      } else {
+        newSet.add(fileName);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleViewContent = (fileName: string) => {
+    setViewContentFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileName)) {
+        newSet.delete(fileName);
+      } else {
+        newSet.add(fileName);
+      }
+      return newSet;
+    });
   };
 
   const getProgressColor = (percentage: number) => {
@@ -254,13 +273,11 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => 
-                          setViewContent(viewContent === result.fileName ? null : result.fileName)
-                        }
+                        onClick={() => toggleViewContent(result.fileName)}
                         className="p-1 h-8 w-8"
                         title="View content"
                       >
-                        {viewContent === result.fileName ? (
+                        {viewContentFiles.has(result.fileName) ? (
                           <EyeOff size={16} />
                         ) : (
                           <Eye size={16} />
@@ -269,7 +286,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
                     </div>
                   </div>
                   
-                  {expandedRequirements === result.fileName && result.requirements && (
+                  {expandedRequirements.has(result.fileName) && result.requirements && (
                     <div className="col-span-12 bg-gray-50 p-4 border-t border-b">
                       <h4 className="font-medium mb-3">Requirement Details</h4>
                       
@@ -346,7 +363,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onClear
                     </div>
                   )}
                   
-                  {viewContent === result.fileName && (
+                  {viewContentFiles.has(result.fileName) && (
                     <div className="col-span-12 p-3 bg-gray-50 border-t border-b font-mono text-xs overflow-x-auto">
                       <pre className="whitespace-pre-wrap break-all text-left">
                         {result.content.slice(0, 500)}

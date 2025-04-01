@@ -1,4 +1,3 @@
-
 import {
   hasColor,
   hasFontFamily,
@@ -112,6 +111,28 @@ export const readRequirementsFile = (file: File): Promise<RequirementDefinition[
     
     reader.readAsText(file);
   });
+};
+
+// Determine file type based on extension and content
+export const determineFileType = (fileName: string, content: string): 'html' | 'css' | undefined => {
+  // First check by extension
+  if (fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm')) {
+    return 'html';
+  }
+  if (fileName.toLowerCase().endsWith('.css')) {
+    return 'css';
+  }
+  
+  // If extension check is inconclusive, try content analysis
+  if (content.includes('<!DOCTYPE html>') || /<html.*?>.*?<\/html>/is.test(content)) {
+    return 'html';
+  }
+  
+  if (/[\w\s-]+\s*{\s*[\w\-]+\s*:\s*[\w\s-]+;/.test(content)) {
+    return 'css';
+  }
+  
+  return undefined; // Could not determine file type
 };
 
 export const checkRequirements = (
@@ -257,6 +278,92 @@ export const generateDefaultRequirements = (): RequirementDefinition[] => {
       description: "HTML file should include images with alt text for accessibility",
       checkFn: (content) => hasImagesWithAlt(content),
       points: 5
+    }
+  ];
+};
+
+// Generate CSS-specific requirements
+export const generateCssRequirements = (): RequirementDefinition[] => {
+  return [
+    {
+      id: "css1",
+      type: "css",
+      name: "Uses CSS variables",
+      description: "CSS should use CSS variables (custom properties)",
+      checkFn: (content) => /--[a-zA-Z0-9-_]+\s*:/.test(content),
+      points: 10
+    },
+    {
+      id: "css2",
+      type: "css",
+      name: "Uses flexbox layout",
+      description: "CSS should use flexbox for layout",
+      checkFn: (content) => /display\s*:\s*flex/.test(content),
+      points: 10
+    },
+    {
+      id: "css3",
+      type: "css",
+      name: "Uses grid layout",
+      description: "CSS should use grid for layout",
+      checkFn: (content) => /display\s*:\s*grid/.test(content),
+      points: 10
+    },
+    {
+      id: "css4",
+      type: "css",
+      name: "Uses media queries",
+      description: "CSS should include media queries for responsive design",
+      checkFn: (content) => /@media\s*\(/.test(content),
+      points: 15
+    },
+    {
+      id: "css5",
+      type: "css",
+      name: "Uses color variables",
+      description: "CSS should use color variables or custom properties",
+      checkFn: (content) => /--[a-zA-Z0-9-_]*color[a-zA-Z0-9-_]*\s*:/.test(content),
+      points: 10
+    },
+    {
+      id: "css6",
+      type: "css",
+      name: "Uses transitions",
+      description: "CSS should include transitions for animations",
+      checkFn: (content) => /transition\s*:/.test(content),
+      points: 5
+    },
+    {
+      id: "css7",
+      type: "css",
+      name: "Uses pseudo-elements",
+      description: "CSS should use ::before or ::after pseudo-elements",
+      checkFn: (content) => /::?(before|after)/.test(content),
+      points: 5
+    },
+    {
+      id: "css8",
+      type: "css",
+      name: "Uses proper box-sizing",
+      description: "CSS should set box-sizing: border-box",
+      checkFn: (content) => /box-sizing\s*:\s*border-box/.test(content),
+      points: 5
+    },
+    {
+      id: "css9",
+      type: "css",
+      name: "Uses relative units",
+      description: "CSS should use relative units like em, rem, %, vh, vw",
+      checkFn: (content) => /(\d+)(em|rem|%|vh|vw)/.test(content),
+      points: 10
+    },
+    {
+      id: "css10",
+      type: "css",
+      name: "Uses proper CSS selectors",
+      description: "CSS should use class selectors instead of just element selectors",
+      checkFn: (content) => /\.[a-zA-Z][a-zA-Z0-9_-]*\s*{/.test(content),
+      points: 10
     }
   ];
 };

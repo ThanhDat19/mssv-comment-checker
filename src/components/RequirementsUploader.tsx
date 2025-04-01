@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Upload, FileDown, Plus, Trash2, Palette, Code, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { RequirementDefinition, generateDefaultRequirements } from "@/utils/fileChecker";
+import { RequirementDefinition, generateDefaultRequirements, generateCssRequirements } from "@/utils/fileChecker";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -22,12 +22,18 @@ import cssRequirementsExample from "../data/css-requirements-example.json";
 
 interface RequirementsUploaderProps {
   onRequirementsLoaded: (requirements: RequirementDefinition[]) => void;
+  fileType?: "html" | "css";
+  title?: string;
 }
 
 export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({ 
-  onRequirementsLoaded 
+  onRequirementsLoaded,
+  fileType = "html",
+  title = "Requirements Checker" 
 }) => {
-  const [requirements, setRequirements] = useState<RequirementDefinition[]>(generateDefaultRequirements());
+  const [requirements, setRequirements] = useState<RequirementDefinition[]>(
+    fileType === "css" ? generateCssRequirements() : generateDefaultRequirements()
+  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string>("all");
   const { toast } = useToast();
@@ -43,12 +49,20 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
       if (event.target && typeof event.target.result === 'string') {
         try {
           const loadedRequirements = JSON.parse(event.target.result);
-          setRequirements(loadedRequirements);
-          onRequirementsLoaded(loadedRequirements);
+          
+          // Filter for the current file type if specified
+          const filteredRequirements = fileType 
+            ? loadedRequirements.filter((req: RequirementDefinition) => 
+                !req.type || req.type === fileType
+              )
+            : loadedRequirements;
+          
+          setRequirements(filteredRequirements);
+          onRequirementsLoaded(filteredRequirements);
           
           toast({
             title: "Requirements loaded",
-            description: `Loaded ${loadedRequirements.length} requirements from file`,
+            description: `Loaded ${filteredRequirements.length} ${fileType} requirements from file`,
           });
         } catch (error) {
           console.error("Error parsing requirements file:", error);
@@ -86,7 +100,7 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "requirements.json";
+    a.download = `${fileType}-requirements.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -94,18 +108,21 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
     
     toast({
       title: "Requirements downloaded",
-      description: "Your requirements have been saved to a JSON file",
+      description: `Your ${fileType} requirements have been saved to a JSON file`,
     });
   };
 
   const useDefaultRequirements = () => {
-    const defaultReqs = generateDefaultRequirements();
+    const defaultReqs = fileType === "css" 
+      ? generateCssRequirements() 
+      : generateDefaultRequirements();
+    
     setRequirements(defaultReqs);
     onRequirementsLoaded(defaultReqs);
     
     toast({
       title: "Default requirements loaded",
-      description: `Loaded ${defaultReqs.length} default HTML requirements`,
+      description: `Loaded ${defaultReqs.length} default ${fileType.toUpperCase()} requirements`,
     });
   };
 
@@ -132,8 +149,8 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
         fileName = "css-requirements-example.json";
         break;
       default:
-        exampleData = stylingRequirementsExample;
-        fileName = "requirements-example.json";
+        exampleData = fileType === "css" ? cssRequirementsExample : htmlRequirementsExample;
+        fileName = `${fileType}-requirements-example.json`;
     }
     
     const blob = new Blob([JSON.stringify(exampleData, null, 2)], { type: "application/json" });
@@ -174,6 +191,13 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
         newRequirements = requirements;
     }
     
+    // Filter for the current file type if specified
+    if (fileType) {
+      newRequirements = newRequirements.filter((req: RequirementDefinition) => 
+        !req.type || req.type === fileType
+      );
+    }
+    
     // Convert string functions to actual functions
     const processedRequirements = newRequirements.map((req: any) => {
       if (typeof req.checkFn === 'string') {
@@ -198,18 +222,25 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
     });
   };
 
+  const getFileTypeIcon = () => {
+    return fileType === "css" ? <Code size={20} className="text-purple-600" /> : <FileText size={20} className="text-blue-600" />;
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div className={`bg-white rounded-lg shadow-md p-6 mb-6 ${fileType === "css" ? "border-l-4 border-purple-400" : "border-l-4 border-blue-400"}`}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Requirements Checker</h2>
+        <div className="flex items-center gap-2">
+          {getFileTypeIcon()}
+          <h2 className="text-xl font-bold">{title}</h2>
+        </div>
         <div className="flex gap-2">
-          <label htmlFor="requirements-upload">
+          <label htmlFor={`requirements-upload-${fileType}`}>
             <Button variant="outline" size="sm" className="gap-2" asChild>
               <div>
                 <Upload size={16} />
                 Import
                 <input
-                  id="requirements-upload"
+                  id={`requirements-upload-${fileType}`}
                   type="file"
                   accept=".json"
                   onChange={handleFileInputChange}
@@ -239,34 +270,22 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
       </div>
       
       <p className="text-sm text-gray-500 mb-4">
-        Upload a JSON file with your custom requirements for checking HTML and CSS files, or use our predefined templates.
+        Upload a JSON file with your custom {fileType.toUpperCase()} requirements for checking files, or use our predefined templates.
       </p>
       
       <div className="text-sm">
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="bg-blue-50 p-2 rounded text-center">
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className={`${fileType === "css" ? "bg-purple-50" : "bg-blue-50"} p-2 rounded text-center`}>
             <p className="font-medium text-education">
               {requirements.length}
             </p>
             <p className="text-xs text-gray-600">Requirements</p>
           </div>
-          <div className="bg-blue-50 p-2 rounded text-center">
+          <div className={`${fileType === "css" ? "bg-purple-50" : "bg-blue-50"} p-2 rounded text-center`}>
             <p className="font-medium text-education">
               {requirements.reduce((sum, req) => sum + req.points, 0)}
             </p>
             <p className="text-xs text-gray-600">Total Points</p>
-          </div>
-          <div className="bg-blue-50 p-2 rounded text-center">
-            <p className="font-medium text-education">
-              {requirements.filter(req => req.type === 'html').length}
-            </p>
-            <p className="text-xs text-gray-600">HTML Checks</p>
-          </div>
-          <div className="bg-blue-50 p-2 rounded text-center">
-            <p className="font-medium text-education">
-              {requirements.filter(req => req.type === 'css').length}
-            </p>
-            <p className="text-xs text-gray-600">CSS Checks</p>
           </div>
         </div>
         
@@ -277,86 +296,32 @@ export const RequirementsUploader: React.FC<RequirementsUploaderProps> = ({
             onClick={useDefaultRequirements}
             className="w-full"
           >
-            Use Default Requirements
+            Use Default {fileType.toUpperCase()} Requirements
           </Button>
           
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => useExampleRequirements("html")}
-              className="gap-2"
-            >
-              <FileText size={16} />
-              Use HTML Requirements
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => useExampleRequirements("css")}
-              className="gap-2"
-            >
-              <Code size={16} />
-              Use CSS Requirements
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => useExampleRequirements("styling")}
-              className="gap-2"
-            >
-              <Palette size={16} />
-              Use Styling Requirements
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 mt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => downloadExampleFile("html")}
-              className="text-xs"
-            >
-              Download HTML Example
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => downloadExampleFile("css")}
-              className="text-xs"
-            >
-              Download CSS Example
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => downloadExampleFile("styling")}
-              className="text-xs"
-            >
-              Download Styling Example
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => downloadExampleFile(fileType)}
+            className="text-xs"
+          >
+            Download {fileType.toUpperCase()} Example
+          </Button>
         </div>
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Requirements</DialogTitle>
+            <DialogTitle>{fileType.toUpperCase()} Requirements</DialogTitle>
             <DialogDescription>
-              View and manage the requirements used to check files
+              View and manage the requirements used to check {fileType} files
             </DialogDescription>
           </DialogHeader>
           
           <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="flex-1 min-h-0 overflow-hidden flex flex-col">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="all">All ({requirements.length})</TabsTrigger>
-              <TabsTrigger value="html">HTML ({requirements.filter(req => req.type === 'html').length})</TabsTrigger>
-              <TabsTrigger value="css">CSS ({requirements.filter(req => req.type === 'css').length})</TabsTrigger>
+            <TabsList className="grid grid-cols-1 mb-4">
+              <TabsTrigger value="all">All Requirements ({requirements.length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value={selectedTab} className="flex-1 min-h-0 overflow-hidden">

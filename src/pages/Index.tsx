@@ -9,7 +9,9 @@ import {
   readFileContent, 
   checkRequirements, 
   RequirementDefinition, 
-  generateDefaultRequirements 
+  generateDefaultRequirements,
+  generateCssRequirements,
+  determineFileType 
 } from "@/utils/fileChecker";
 import { RequirementsUploader } from "@/components/RequirementsUploader";
 import Header from "@/components/Header";
@@ -19,7 +21,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const Index = () => {
   const [results, setResults] = useState<FileCheckResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [requirements, setRequirements] = useState<RequirementDefinition[]>(generateDefaultRequirements());
+  const [htmlRequirements, setHtmlRequirements] = useState<RequirementDefinition[]>(generateDefaultRequirements());
+  const [cssRequirements, setCssRequirements] = useState<RequirementDefinition[]>(generateCssRequirements());
   const { toast } = useToast();
 
   const handleFilesUploaded = async (files: File[]) => {
@@ -35,14 +38,21 @@ const Index = () => {
           const content = await readFileContent(file);
           const mssvCheck = checkMSSVComment(content);
           
+          // Determine file type
+          const fileType = determineFileType(file.name, content);
+          
           // Check requirements only if MSSV is present
-          const requirementsCheck = mssvCheck.hasMSSV 
-            ? checkRequirements(content, requirements)
-            : undefined;
+          let requirementsCheck;
+          if (mssvCheck.hasMSSV) {
+            // Select the appropriate requirements based on file type
+            const applicableRequirements = fileType === 'css' ? cssRequirements : htmlRequirements;
+            requirementsCheck = checkRequirements(content, applicableRequirements, fileType);
+          }
           
           newResults.push({
             fileName: file.name,
             content: content,
+            fileType: fileType,
             hasMSSV: mssvCheck.hasMSSV,
             mssvValue: mssvCheck.mssvValue,
             requirements: requirementsCheck
@@ -80,17 +90,37 @@ const Index = () => {
     }
   };
 
-  const handleRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
-    setRequirements(newRequirements);
+  const handleHtmlRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
+    setHtmlRequirements(newRequirements);
     
-    // Re-check existing results if there are any
+    // Re-check existing HTML results if there are any
     if (results.length > 0) {
       const updatedResults = results.map(result => {
-        // Only update if the file has MSSV
-        if (result.hasMSSV) {
+        // Only update if it's an HTML file and has MSSV
+        if (result.fileType === 'html' && result.hasMSSV) {
           return {
             ...result,
-            requirements: checkRequirements(result.content, newRequirements)
+            requirements: checkRequirements(result.content, newRequirements, 'html')
+          };
+        }
+        return result;
+      });
+      
+      setResults(updatedResults);
+    }
+  };
+
+  const handleCssRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
+    setCssRequirements(newRequirements);
+    
+    // Re-check existing CSS results if there are any
+    if (results.length > 0) {
+      const updatedResults = results.map(result => {
+        // Only update if it's a CSS file and has MSSV
+        if (result.fileType === 'css' && result.hasMSSV) {
+          return {
+            ...result,
+            requirements: checkRequirements(result.content, newRequirements, 'css')
           };
         }
         return result;
@@ -116,13 +146,28 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <Alert className="mb-6">
             <Info className="h-4 w-4" />
-            <AlertTitle>HTML File Grading Tool</AlertTitle>
+            <AlertTitle>HTML & CSS File Grading Tool</AlertTitle>
             <AlertDescription>
-              Files need an MSSV comment <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code> at the beginning and must meet HTML requirements to earn points.
+              Files need an MSSV comment <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code> at the beginning and must meet requirements specific to each file type to earn points.
             </AlertDescription>
           </Alert>
           
-          <RequirementsUploader onRequirementsLoaded={handleRequirementsLoaded} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <RequirementsUploader 
+                onRequirementsLoaded={handleHtmlRequirementsLoaded} 
+                fileType="html"
+                title="HTML Requirements"
+              />
+            </div>
+            <div>
+              <RequirementsUploader 
+                onRequirementsLoaded={handleCssRequirementsLoaded} 
+                fileType="css"
+                title="CSS Requirements"
+              />
+            </div>
+          </div>
           
           <FileUploader 
             onFilesUploaded={handleFilesUploaded} 
@@ -144,7 +189,7 @@ const Index = () => {
             <ResultsDisplay 
               results={results} 
               onClear={clearResults} 
-              requirements={requirements}
+              requirements={[...htmlRequirements, ...cssRequirements]}
             />
           )}
           
@@ -187,7 +232,7 @@ const Index = () => {
       
       <footer className="border-t mt-12 py-6 text-center text-sm text-gray-500">
         <div className="container mx-auto">
-          HTML Grading Tool &copy; {new Date().getFullYear()}
+          HTML & CSS Grading Tool &copy; {new Date().getFullYear()}
         </div>
       </footer>
       
