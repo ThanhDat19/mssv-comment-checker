@@ -8,17 +8,30 @@ import {
   hasImagesWithAlt
 } from './htmlStyleChecker';
 
-export const checkMSSVComment = (content: string): { hasMSSV: boolean; mssvValue?: string } => {
-  // Look for MSSV comment at the beginning of the file
-  // The pattern will match: <!-- MSSV: XXXXXX --> or <!-- MSSV:XXXXXX -->
-  const mssvRegex = /^\s*<!--\s*MSSV:?\s*([A-Za-z0-9]+)\s*-->/;
-  const match = content.match(mssvRegex);
-  
-  if (match && match[1]) {
-    return {
-      hasMSSV: true,
-      mssvValue: match[1].trim()
-    };
+export const checkMSSVComment = (content: string, fileType?: 'html' | 'css'): { hasMSSV: boolean; mssvValue?: string } => {
+  // For CSS files, look for /* MSSV: XXXXXX */
+  if (fileType === 'css') {
+    const cssMssvRegex = /^\s*\/\*\s*MSSV:?\s*([A-Za-z0-9]+)\s*\*\//;
+    const cssMatch = content.match(cssMssvRegex);
+    
+    if (cssMatch && cssMatch[1]) {
+      return {
+        hasMSSV: true,
+        mssvValue: cssMatch[1].trim()
+      };
+    }
+  } 
+  // For HTML files or unspecified type, look for <!-- MSSV: XXXXXX -->
+  else {
+    const htmlMssvRegex = /^\s*<!--\s*MSSV:?\s*([A-Za-z0-9]+)\s*-->/;
+    const htmlMatch = content.match(htmlMssvRegex);
+    
+    if (htmlMatch && htmlMatch[1]) {
+      return {
+        hasMSSV: true,
+        mssvValue: htmlMatch[1].trim()
+      };
+    }
   }
   
   return { hasMSSV: false };
@@ -113,7 +126,6 @@ export const readRequirementsFile = (file: File): Promise<RequirementDefinition[
   });
 };
 
-// Determine file type based on extension and content
 export const determineFileType = (fileName: string, content: string): 'html' | 'css' | undefined => {
   // First check by extension
   if (fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm')) {
@@ -282,7 +294,6 @@ export const generateDefaultRequirements = (): RequirementDefinition[] => {
   ];
 };
 
-// Generate CSS-specific requirements
 export const generateCssRequirements = (): RequirementDefinition[] => {
   return [
     {

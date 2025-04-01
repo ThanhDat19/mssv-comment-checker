@@ -101,7 +101,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
             or click to browse your files
           </p>
         </div>
-        <div className="flex gap-2 mt-2">
+        <div className="flex flex-wrap justify-center gap-2 mt-2">
           <div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full">
             <FileCheck size={16} className="text-education" />
             <span className="text-xs text-gray-600">Files with MSSV</span>

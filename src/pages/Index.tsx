@@ -35,12 +35,9 @@ const Index = () => {
       for (const file of files) {
         try {
           const content = await readFileContent(file);
-          const mssvCheck = checkMSSVComment(content);
           
-          // Determine file type
           const fileType = determineFileType(file.name, content);
           
-          // Skip files that are neither HTML nor CSS
           if (!fileType) {
             toast({
               title: "Unsupported file type",
@@ -50,10 +47,10 @@ const Index = () => {
             continue;
           }
           
-          // Check requirements only if MSSV is present
+          const mssvCheck = checkMSSVComment(content, fileType);
+          
           let requirementsCheck;
           if (mssvCheck.hasMSSV) {
-            // Select the appropriate requirements based on file type
             const applicableRequirements = fileType === 'css' ? cssRequirements : htmlRequirements;
             requirementsCheck = checkRequirements(content, applicableRequirements, fileType);
           }
@@ -102,10 +99,8 @@ const Index = () => {
   const handleHtmlRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
     setHtmlRequirements(newRequirements);
     
-    // Re-check existing HTML results if there are any
     if (results.length > 0) {
       const updatedResults = results.map(result => {
-        // Only update if it's an HTML file and has MSSV
         if (result.fileType === 'html' && result.hasMSSV) {
           return {
             ...result,
@@ -122,10 +117,8 @@ const Index = () => {
   const handleCssRequirementsLoaded = (newRequirements: RequirementDefinition[]) => {
     setCssRequirements(newRequirements);
     
-    // Re-check existing CSS results if there are any
     if (results.length > 0) {
       const updatedResults = results.map(result => {
-        // Only update if it's a CSS file and has MSSV
         if (result.fileType === 'css' && result.hasMSSV) {
           return {
             ...result,
@@ -157,7 +150,12 @@ const Index = () => {
             <Info className="h-4 w-4" />
             <AlertTitle>HTML & CSS File Grading Tool</AlertTitle>
             <AlertDescription>
-              Files need an MSSV comment <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code> at the beginning and must meet requirements specific to each file type to earn points.
+              <p>Files need an MSSV comment at the beginning:</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>HTML files: <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"<!-- MSSV: XXXXXX -->"}</code></li>
+                <li>CSS files: <code className="bg-gray-100 px-1 py-0.5 rounded text-education">{"/* MSSV: XXXXXX */"}</code></li>
+              </ul>
+              <p className="mt-1">Files must meet requirements specific to each file type to earn points.</p>
             </AlertDescription>
           </Alert>
           
